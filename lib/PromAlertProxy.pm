@@ -82,6 +82,7 @@ sub to_app { $app }
 
 package  # hide from PAUSE
   PromAlertProxy::PromAlert {
+
 use namespace::autoclean;
 use Moo;
 use Types::Standard qw(Str Int HashRef);
@@ -109,6 +110,7 @@ use Moo;
 use Types::Standard qw(Str Enum Int HashRef);
 use Digest::SHA qw(sha256_hex);
 use JSON::MaybeXS;
+use experimental qw(postderef);
 
 has message_type        => ( is => 'ro', isa => Enum[qw(CRITICAL WARNING ACKNOWLEDGEMENT INFO RECOVERY)],
                               required => 1 );
