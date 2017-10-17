@@ -110,6 +110,7 @@ use Moo;
 use Types::Standard qw(Str Enum Int HashRef);
 use Digest::SHA qw(sha256_hex);
 use JSON::MaybeXS;
+use Defined::KV;
 use experimental qw(postderef);
 
 has message_type        => ( is => 'ro', isa => Enum[qw(CRITICAL WARNING ACKNOWLEDGEMENT INFO RECOVERY)],
@@ -140,9 +141,9 @@ sub from_prom_alert {
   PromAlertProxy::VOAlert->new(
     message_type => $message_type,
     entity_id    => $entity_id,
-    ($entity_display_name ? (entity_display_name => $entity_display_name) : ()),
-    ($state_message       ? (state_message       => $state_message      ) : ()),
-    ($state_start_time    ? (state_start_time    => $state_start_time   ) : ()),
+    defined_kv(entity_display_name => $entity_display_name),
+    defined_kv(state_message       => $state_message),
+    defined_kv(state_start_time    => $state_start_time),
     extra_fields => \%extra_fields,
   );
 }
@@ -154,9 +155,9 @@ sub _build__json {
   encode_json({
     message_type => $self->message_type,
     entity_id    => $self->entity_id,
-    ($self->entity_display_name ? (entity_display_name => $self->entity_display_name) : ()),
-    ($self->state_message       ? (state_message       => $self->state_message      ) : ()),
-    ($self->state_start_time    ? (state_start_time    => $self->state_start_time   ) : ()),
+    defined_kv(entity_display_name => $self->entity_display_name),
+    defined_kv(state_message       => $self->state_message),
+    defined_kv(state_start_time    => $self->state_start_time),
     $self->extra_fields->%*,
   });
 }

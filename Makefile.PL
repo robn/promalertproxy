@@ -21,6 +21,7 @@ my %WriteMakefileArgs = (
   "NAME" => "PromAlertProxy",
   "PREREQ_PM" => {
     "Date::Parse" => 0,
+    "Defined::KV" => 0,
     "Digest::SHA" => 0,
     "HTTP::Tiny" => 0,
     "JSON::MaybeXS" => 0,
@@ -44,6 +45,7 @@ my %WriteMakefileArgs = (
 
 my %FallbackPrereqs = (
   "Date::Parse" => 0,
+  "Defined::KV" => 0,
   "Digest::SHA" => 0,
   "HTTP::Tiny" => 0,
   "JSON::MaybeXS" => 0,
