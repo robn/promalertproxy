@@ -129,7 +129,7 @@ sub from_prom_alert {
   $message_type = 'CRITICAL' unless $message_type =~ m/^(?:CRITICAL|WARNING|INFO)$/;
   $message_type = 'RECOVERY' if ($alert->ends_at // (time+60)) < time; # arbitrary future
 
-  my $entity_id = sha256_hex(join ':', map { "$_:$alert->labels->{$_}" } sort keys $alert->labels->%*);
+  my $entity_id = sha256_hex(join ':', map { "$_:".$alert->labels->{$_} } sort keys $alert->labels->%*);
 
   my $entity_display_name = $alert->annotations->{summary};
   my $state_message       = $alert->annotations->{description};
