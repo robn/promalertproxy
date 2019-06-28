@@ -7,6 +7,10 @@ use strict;
 
 use lib qw(lib);
 
-use PromAlertProxy;;
+use PromAlertProxy;
 
-PromAlertProxy->to_app;
+my $VICTOROPS_API_URL = $ENV{VICTOROPS_API_URL} // die "E: VICTOROPS_API_URL environment variable not set\n";
+
+PromAlertProxy->new(
+  victorops_api_url => $VICTOROPS_API_URL,
+)->psgi;

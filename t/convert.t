@@ -9,13 +9,6 @@ use Test::Time time => 1558324375;
 
 use PromAlertProxy;
 
-BEGIN {
-  # XXX dumb but it needs the envvar at compile
-  $ENV{VICTOROPS_API_URL} = 1;
-  require 'PromAlertProxy.pm';
-  PromAlertProxy->import;
-}
-
 cmp_deeply(
   PromAlertProxy::VOAlert->from_prom_alert(
     PromAlertProxy::PromAlert->new(
@@ -54,6 +47,7 @@ cmp_deeply(
       }),
     ),
   ),
+  'converted prom alert to vo alert',
 );
 
 done_testing;

@@ -7,76 +7,89 @@ use warnings;
 use strict;
 use experimental qw(postderef);
 
+use Moo;
+use Types::Standard qw(Str);
+
 use Plack::Request;
 use Plack::Response;
 use JSON::MaybeXS;
 use Try::Tiny;
 use HTTP::Tiny;
 
-my $VICTOROPS_API_URL = $ENV{VICTOROPS_API_URL} // die "E: VICTOROPS_API_URL environment variable not set\n";
+has victorops_api_url => (
+  is       => 'ro',
+  isa      => Str,
+  required => ,1
+);
 
-my $app = sub {
-  my ($env) = @_;
+has _http => (
+  is      => 'lazy',
+  default => sub { HTTP::Tiny->new },
+);
 
-  my $req = Plack::Request->new($env);
+sub psgi {
+  my ($self) = @_;
+  return sub {
+    my ($env) = @_;
 
-  return Plack::Response->new(400)->finalize
-    if $req->method ne 'POST'
-    or $req->content_type ne 'application/json';
+    my $req = Plack::Request->new($env);
 
-  my $data = try {
-    decode_json($req->content);
-  }
-  catch {
-    warn "failed to parse content: $_\n";
-  };
-  return Plack::Response->new(400)->finalize
-    unless $data && ref $data eq 'ARRAY';
+    return Plack::Response->new(400)->finalize
+      if $req->method ne 'POST'
+      or $req->content_type ne 'application/json';
 
-  my $prom_alerts = try {
-    [
-      map {
-        PromAlertProxy::PromAlert->new($_->%*)
-      } $data->@*
-    ];
-  }
-  catch {
-    warn "failed to create Prometheus alert objects: $_\n";
-  };
-  return Plack::Response->new(400)->finalize
-    unless $prom_alerts;
+    my $data = try {
+      decode_json($req->content);
+    }
+    catch {
+      warn "failed to parse content: $_\n";
+    };
+    return Plack::Response->new(400)->finalize
+      unless $data && ref $data eq 'ARRAY';
 
-  my $vo_alerts = try {
-    [
-      map {
-        PromAlertProxy::VOAlert->from_prom_alert($_)
-      } $prom_alerts->@*
-    ];
-  }
-  catch {
-    warn "failed to create VictorOps alert objects: $_\n";
-  };
-  return Plack::Response->new(500)->finalize
-    unless $vo_alerts;
+    my $prom_alerts = try {
+      [
+        map {
+          PromAlertProxy::PromAlert->new($_->%*)
+        } $data->@*
+      ];
+    }
+    catch {
+      warn "failed to create Prometheus alert objects: $_\n";
+    };
+    return Plack::Response->new(400)->finalize
+      unless $prom_alerts;
 
-  my $ua = HTTP::Tiny->new;
-  for my $alert ($vo_alerts->@*) {
-    my $res = $ua->post($VICTOROPS_API_URL,
-      {
-        headers => {
-          'Content-type' => 'application/json',
+    my $vo_alerts = try {
+      [
+        map {
+          PromAlertProxy::VOAlert->from_prom_alert($_)
+        } $prom_alerts->@*
+      ];
+    }
+    catch {
+      warn "failed to create VictorOps alert objects: $_\n";
+    };
+    return Plack::Response->new(500)->finalize
+      unless $vo_alerts;
+
+    my $http = $self->_http;
+    for my $alert ($vo_alerts->@*) {
+      my $res = $http->post($self->victorops_api_url,
+        {
+          headers => {
+            'Content-type' => 'application/json',
+          },
+          content => $alert->to_json,
         },
-        content => $alert->to_json,
-      },
-    );
-    warn "error posting alert to VictorOps: $res->{status} $res->{reason}\n"
-      unless $res->{success};
-  }
+      );
+      warn "error posting alert to VictorOps: $res->{status} $res->{reason}\n"
+        unless $res->{success};
+    }
 
-  return Plack::Response->new(200)->finalize;
-}; 
-
-sub to_app { $app }
+    return Plack::Response->new(200)->finalize;
+  };
+}
 
 }
 
