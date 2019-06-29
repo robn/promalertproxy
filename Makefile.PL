@@ -36,9 +36,18 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
+  "TEST_REQUIRES" => {
+    "HTTP::Request::Common" => 0,
+    "JSON" => 0,
+    "Plack::Test" => 0,
+    "Test::Deep" => 0,
+    "Test::Lib" => 0,
+    "Test::More" => 0,
+    "Test::Time" => 0
+  },
   "VERSION" => "0.001",
   "test" => {
-    "TESTS" => ""
+    "TESTS" => "t/*.t"
   }
 );
 
@@ -47,11 +56,18 @@ my %FallbackPrereqs = (
   "Date::Parse" => 0,
   "Defined::KV" => 0,
   "Digest::SHA" => 0,
+  "HTTP::Request::Common" => 0,
   "HTTP::Tiny" => 0,
+  "JSON" => 0,
   "JSON::MaybeXS" => 0,
   "Moo" => 0,
   "Plack::Request" => 0,
   "Plack::Response" => 0,
+  "Plack::Test" => 0,
+  "Test::Deep" => 0,
+  "Test::Lib" => 0,
+  "Test::More" => 0,
+  "Test::Time" => 0,
   "Try::Tiny" => 0,
   "Types::Standard" => 0,
   "experimental" => 0,
