@@ -15,6 +15,7 @@ use Plack::Response;
 use JSON::MaybeXS;
 use Try::Tiny;
 use HTTP::Tiny;
+use Prometheus::Tiny::Shared;
 
 has victorops_api_url => (
   is       => 'ro',
@@ -27,16 +28,45 @@ has _http => (
   default => sub { HTTP::Tiny->new },
 );
 
-sub psgi {
+has _prom => (
+  is => 'lazy',
+  default => sub {
+    my $prom = Prometheus::Tiny::Shared->new;
+    $prom->declare('promalertproxy_http_requests_total',
+                   type => 'counter',
+                   help => 'Number of requests received');
+    $prom->declare('promalertproxy_http_bad_requests_total',
+                   type => 'counter',
+                   help => 'Number of bad requests received');
+    $prom->declare('promalertproxy_vo_alert_create_errors_total',
+                   type => 'counter',
+                   help => 'Number of errors creating VOAlert objects');
+    $prom->declare('promalertproxy_victorops_alerts_total',
+                   type => 'counter',
+                   help => 'Number of alerts posted by Prometheus');
+    $prom->declare('promalertproxy_victorops_post_errors_total',
+                   type => 'counter',
+                   help => 'Number of errors posting alerts to VictorOps');
+    $prom;
+  },
+);
+
+sub metrics_app {
+  my ($self) = @_;
+  return $self->_prom->psgi;
+}
+
+sub proxy_app {
   my ($self) = @_;
   return sub {
     my ($env) = @_;
 
     my $req = Plack::Request->new($env);
 
-    return Plack::Response->new(400)->finalize
-      if $req->method ne 'POST'
-      or $req->content_type ne 'application/json';
+    return Plack::Response->new(405)->finalize unless $req->method eq 'POST';
+    return Plack::Response->new(415)->finalize unless $req->content_type eq 'application/json';
+
+    $self->_prom->inc('promalertproxy_http_requests_total');
 
     my $data = try {
       decode_json($req->content);
@@ -44,8 +74,10 @@ sub psgi {
     catch {
       warn "failed to parse content: $_\n";
     };
-    return Plack::Response->new(400)->finalize
-      unless $data && ref $data eq 'ARRAY';
+    unless ($data && ref $data eq 'ARRAY') {
+      $self->_prom->inc('promalertproxy_http_bad_requests_total', { type => 'json_parse_failed' });
+      return Plack::Response->new(400)->finalize
+    }
 
     my $prom_alerts = try {
       [
@@ -57,8 +89,10 @@ sub psgi {
     catch {
       warn "failed to create Prometheus alert objects: $_\n";
     };
-    return Plack::Response->new(400)->finalize
-      unless $prom_alerts;
+    unless ($prom_alerts) {
+      $self->_prom->inc('promalertproxy_http_bad_requests_total', { type => 'prom_alert_create_failed' });
+      return Plack::Response->new(400)->finalize
+    }
 
     my $vo_alerts = try {
       [
@@ -70,11 +104,14 @@ sub psgi {
     catch {
       warn "failed to create VictorOps alert objects: $_\n";
     };
-    return Plack::Response->new(500)->finalize
-      unless $vo_alerts;
+    unless ($vo_alerts) {
+      $self->_prom->inc('promalertproxy_vo_alert_create_errors_total');
+      return Plack::Response->new(500)->finalize
+    }
 
     my $http = $self->_http;
     for my $alert ($vo_alerts->@*) {
+      $self->_prom->inc('promalertproxy_victorops_alerts_total', { type => $alert->message_type });
       my $res = $http->post($self->victorops_api_url,
         {
           headers => {
@@ -83,8 +120,10 @@ sub psgi {
           content => $alert->to_json,
         },
       );
-      warn "error posting alert to VictorOps: $res->{status} $res->{reason}\n"
-        unless $res->{success};
+      unless ($res->{success}) {
+        $self->_prom->inc('promalertproxy_victorops_post_errors_total', { status => $res->{status} });
+        warn "error posting alert to VictorOps: $res->{status} $res->{reason}\n"
+      }
     }
 
     return Plack::Response->new(200)->finalize;

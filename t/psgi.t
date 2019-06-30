@@ -19,7 +19,7 @@ my $p = PromAlertProxy->new(
   victorops_api_url => 'http://victorops/alert',
 );
 
-my $t = Plack::Test->create($p->psgi);
+my $t = Plack::Test->create($p->proxy_app);
 
 my $vo_alert;
 

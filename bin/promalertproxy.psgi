@@ -7,10 +7,16 @@ use strict;
 
 use lib qw(lib);
 
+use Plack::Builder;
 use PromAlertProxy;
 
 my $VICTOROPS_API_URL = $ENV{VICTOROPS_API_URL} // die "E: VICTOROPS_API_URL environment variable not set\n";
 
-PromAlertProxy->new(
+my $proxy = PromAlertProxy->new(
   victorops_api_url => $VICTOROPS_API_URL,
-)->psgi;
+);
+
+builder {
+  mount '/api/v1/alerts' => $proxy->proxy_app;
+  mount '/metrics'       => $proxy->metrics_app;
+};
