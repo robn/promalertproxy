@@ -3,11 +3,9 @@ package PromAlertProxy {
 # ABSTRACT: Proxy Prometheus alerts to VictorOps
 
 use 5.020;
-use warnings;
-use strict;
+use Moo;
 use experimental qw(postderef);
 
-use Moo;
 use Types::Standard qw(Str);
 
 use Plack::Request;
