@@ -139,13 +139,13 @@ use Types::Standard qw(Str Int HashRef);
 
 use Date::Parse;
 
-has labels        => ( is => 'ro', isa => HashRef[Str],                             
+has labels        => ( is => 'ro', isa => HashRef[Str],
                         required => 1 );
-has annotations   => ( is => 'ro', isa => HashRef[Str],                             
+has annotations   => ( is => 'ro', isa => HashRef[Str],
                         required => 1 );
-has starts_at     => ( is => 'ro', isa => Int,          
+has starts_at     => ( is => 'ro', isa => Int,
                         init_arg => 'startsAt', coerce => sub { int str2time(shift) } );
-has ends_at       => ( is => 'ro', isa => Int,          
+has ends_at       => ( is => 'ro', isa => Int,
                         init_arg => 'endsAt',   coerce => sub { int str2time(shift) } );
 has generator_url => ( is => 'ro', isa => Str,
                         init_arg => 'generatorURL', required => 1 );
