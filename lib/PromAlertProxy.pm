@@ -13,7 +13,7 @@ use Plack::Response;
 use JSON::MaybeXS;
 use Try::Tiny;
 use HTTP::Tiny;
-use Prometheus::Tiny::Shared;
+use Prometheus::Tiny::Shared 0.020;
 
 has victorops_api_url => (
   is       => 'ro',
@@ -29,7 +29,9 @@ has _http => (
 has _prom => (
   is => 'lazy',
   default => sub {
-    my $prom = Prometheus::Tiny::Shared->new;
+    my %args;
+    $args{filename} = $ENV{METRICS_PATH} if $ENV{METRICS_PATH};
+    my $prom = Prometheus::Tiny::Shared->new(%args);
     $prom->declare('promalertproxy_http_requests_total',
                    type => 'counter',
                    help => 'Number of requests received');
