@@ -66,7 +66,12 @@ sub proxy_app {
     return Plack::Response->new(405)->finalize unless $req->method eq 'POST';
     return Plack::Response->new(415)->finalize unless $req->content_type eq 'application/json';
 
-    $self->_prom->inc('promalertproxy_http_requests_total');
+    try {
+      $self->_prom->inc('promalertproxy_http_requests_total');
+    }
+    catch {
+      warn "failed to update metrics: $_\n";
+    };
 
     my $data = try {
       decode_json($req->content);
@@ -75,7 +80,12 @@ sub proxy_app {
       warn "failed to parse content: $_\n";
     };
     unless ($data && ref $data eq 'ARRAY') {
-      $self->_prom->inc('promalertproxy_http_bad_requests_total', { type => 'json_parse_failed' });
+      try {
+        $self->_prom->inc('promalertproxy_http_bad_requests_total', { type => 'json_parse_failed' });
+      }
+      catch {
+        warn "failed to update metrics: $_\n";
+      };
       return Plack::Response->new(400)->finalize
     }
 
@@ -90,7 +100,12 @@ sub proxy_app {
       warn "failed to create Prometheus alert objects: $_\n";
     };
     unless ($prom_alerts) {
-      $self->_prom->inc('promalertproxy_http_bad_requests_total', { type => 'prom_alert_create_failed' });
+      try {
+        $self->_prom->inc('promalertproxy_http_bad_requests_total', { type => 'prom_alert_create_failed' });
+      }
+      catch {
+        warn "failed to update metrics: $_\n";
+      };
       return Plack::Response->new(400)->finalize
     }
 
@@ -105,13 +120,23 @@ sub proxy_app {
       warn "failed to create VictorOps alert objects: $_\n";
     };
     unless ($vo_alerts) {
-      $self->_prom->inc('promalertproxy_vo_alert_create_errors_total');
+      try {
+        $self->_prom->inc('promalertproxy_vo_alert_create_errors_total');
+      }
+      catch {
+        warn "failed to update metrics: $_\n";
+      };
       return Plack::Response->new(500)->finalize
     }
 
     my $http = $self->_http;
     for my $alert ($vo_alerts->@*) {
-      $self->_prom->inc('promalertproxy_victorops_alerts_total', { type => $alert->message_type });
+      try {
+        $self->_prom->inc('promalertproxy_victorops_alerts_total', { type => $alert->message_type });
+      }
+      catch {
+        warn "failed to update metrics: $_\n";
+      };
       my $res = $http->post($self->victorops_api_url,
         {
           headers => {
@@ -121,7 +146,12 @@ sub proxy_app {
         },
       );
       unless ($res->{success}) {
-        $self->_prom->inc('promalertproxy_victorops_post_errors_total', { status => $res->{status} });
+        try {
+          $self->_prom->inc('promalertproxy_victorops_post_errors_total', { status => $res->{status} });
+        }
+        catch {
+          warn "failed to update metrics: $_\n";
+        };
         warn "error posting alert to VictorOps: $res->{status} $res->{reason}\n"
       }
     }
