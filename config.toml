@@ -1,0 +1,14 @@
+[server]
+  ip = "127.0.0.1"
+  port = 9999
+
+[target.victorops]
+  class = "PromAlertProxy::Target::VictorOps"
+  default = 1
+  api_url = "https://alert.victorops.com/integrations/generic/20131114/alert/xxxxxxxxxxxxxxxx/plumbing"
+
+[target.email]
+  class = "PromAlertProxy::Target::Email"
+  from = "alert@mycorp.com"
+  to = "alert@mycorp.com"
+  transport_class = "Email::Sender::Transport::Sendmail"

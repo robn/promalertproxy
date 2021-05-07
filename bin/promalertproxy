@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+
+use 5.028;
+use warnings;
+
+use Getopt::Long::Descriptive;
+use PromAlertProxy::Hub;
+use PromAlertProxy::Config;
+
+my ($opt, $usage) = describe_options(
+  'promalertproxy -c config.toml',
+  [ 'config|c=s', 'config file to load', { required => 1 } ],
+  [ 'help',       'print usage message and exit', { shortcircuit => 1 } ],
+);
+
+print $usage->text and exit if $opt->help;
+
+my $hub = PromAlertProxy::Hub->new;
+
+PromAlertProxy::Config->new(hub => $hub, filename => $opt->config)->inflate;
+
+$hub->loop->run;

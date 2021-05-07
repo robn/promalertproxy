@@ -1,7 +1,16 @@
 package Test::PromAlertProxy;
 
-use warnings;
+use 5.028;
 use strict;
+use experimental qw(signatures);
+
+use PromAlertProxy::Logger '$Logger' => { init => {
+  ident    => 'promalertproxy',
+  to_self  => 1,
+} };
+
+use Test::PromAlertProxy::Target;
+use Test::PromAlertProxy::CrashTarget;
 
 sub now { 1558324375 };
 
