@@ -129,7 +129,7 @@ sub dispatch ($self, $alert) {
   my $alert_name = $alert->name;
   local $Logger = $Logger->proxy({ proxy_prefix => "$alert_name: " });
 
-  $Logger->log(["received alert: %s", $alert->summary]);
+  $Logger->log(["received alert [%s]: %s", $alert->is_resolved ? 'RESOLVED' : 'ACTIVE', $alert->summary]);
 
   $self->_metrics->inc('promalertproxy_alerts_received_total', { name => $alert->name });
 
