@@ -4,7 +4,7 @@ use 5.028;
 use Moo;
 use experimental qw(signatures);
 
-use Types::Standard qw(Str Int HashRef Maybe);
+use Types::Standard qw(Str Int Bool HashRef Maybe);
 use Type::Params qw(compile);
 
 use Date::Parse;
@@ -77,6 +77,18 @@ has description => (
   is      => 'lazy',
   isa     => Str,
   default => sub ($self) { $self->annotations->{description} // "[no description]" },
+);
+
+has is_active => (
+  is      => 'lazy',
+  isa     => Bool,
+  default => sub ($self) { ($self->ends_at // (time+60)) > time },
+);
+
+has is_resolved => (
+  is      => 'lazy',
+  isa     => Bool,
+  default => sub ($self) { !$self->is_active },
 );
 
 1;

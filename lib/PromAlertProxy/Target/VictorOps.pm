@@ -24,9 +24,14 @@ sub raise ($self, $alert) {
   state $check = compile(Object, class_type('PromAlertProxy::Alert'));
   $check->(@_);
 
-  my $message_type = uc(($alert->labels->{severity} || 'critical'));
-  $message_type = 'CRITICAL' unless $message_type =~ m/^(?:CRITICAL|WARNING|INFO)$/;
-  $message_type = 'RECOVERY' if ($alert->ends_at // (time+60)) < time; # arbitrary future
+  my $message_type;
+  if ($alert->is_resolved) {
+    $message_type = 'RECOVERY';
+  }
+  else {
+    $message_type = uc(($alert->labels->{severity} || 'critical'));
+    $message_type = 'CRITICAL' unless $message_type =~ m/^(?:CRITICAL|WARNING|INFO)$/;
+  }
 
   my %extra_fields = map { ("prometheus.$_" => $alert->labels->{$_}) } keys $alert->labels->%*;
 
