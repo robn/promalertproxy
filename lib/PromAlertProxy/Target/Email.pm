@@ -42,6 +42,14 @@ has transport_args => (
   default => sub { {} },
 );
 
+has headers => (
+  is     => 'ro',
+  isa    => HashRef,
+  coerce => sub ($config) {
+    +{ map { delete ($_->{header}) => $_ } @$config },
+  },
+);
+
 has _transport => (
   is      => 'lazy',
   isa     => role_type('Email::Sender::Transport'),
@@ -54,13 +62,30 @@ sub raise ($self, $alert) {
   state $check = compile(Object, class_type('PromAlertProxy::Alert'));
   $check->(@_);
 
-  Email::Stuffer->from($self->from)
-                ->to($self->to)
-                ->subject($alert->name.': '.$alert->summary)
-                ->text_body($self->_body_for($alert))
-                ->header('In-Reply-To' => '<'.$alert->key.'@promalertproxy>')
-                ->transport($self->_transport)
-                ->send_or_die;
+
+  my %headers;
+  for my $header (keys $self->headers->%*) {
+    my $spec = $self->headers->{$header};
+    if (my $value = $spec->{value}) {
+      $headers{$header} = $value;
+    }
+    elsif (my $label = $spec->{label}) {
+      if (my $value = $alert->labels->{$label}) {
+        $headers{$header} = $value;
+      }
+    }
+  }
+
+  my $stuffer = Email::Stuffer->from($self->from)
+                              ->to($self->to)
+                              ->subject($alert->name.': '.$alert->summary)
+                              ->text_body($self->_body_for($alert))
+                              ->header('In-Reply-To' => '<'.$alert->key.'@promalertproxy>')
+                              ->transport($self->_transport);
+
+  $stuffer->header($_ => $headers{$_}) for keys %headers;
+
+  $stuffer->send_or_die;
 
   return;
 }
