@@ -7,6 +7,12 @@
   default = 1
   api_url = "https://alert.victorops.com/integrations/generic/20131114/alert/xxxxxxxxxxxxxxxx/plumbing"
 
+[target.pagerduty]
+  class = "PromAlertProxy::Target::PagerDuty"
+  default = 1
+  api_url = "https://events.pagerduty.com/v2/enqueue"
+  routing_key = "xxxxxxxxxxxxxxxx"
+
 [target.email]
   class = "PromAlertProxy::Target::Email"
   from = "alert@mycorp.com"
