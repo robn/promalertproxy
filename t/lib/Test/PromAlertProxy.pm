@@ -51,11 +51,37 @@ sub vo_alert {
   };
 }
 
+sub pd_alert {
+  return {
+    payload => {
+      summary   => "Host monitor2 down",
+      timestamp => "2019-05-20T03:52:55Z",
+      source    => "monitor2",
+      severity  => "critical",
+      component => "prom_node_exporter",
+      class     => "node_exporter",
+      custom_details => {
+        description => "No response from node_exporter on monitor2 for more than 30s",
+        "prometheus.alertname" => "node_exporter",
+        "prometheus.dc"        => "nyi",
+        "prometheus.instance"  => "10.202.2.231:9100",
+        "prometheus.job"       => "prom_node_exporter",
+        "prometheus.node"      => "monitor2",
+        "prometheus.severity"  => "critical",
+      },
+    },
+    routing_key => 'testkey',
+    dedup_key   => "51643560a4093dbd754ed3a16b136752dc5af49fca7cf3814b040e734f5bb6b1",
+    client      => "Prometheus",
+    client_url  => "https://prometheus.internal/graph?g0.expr=up%7Bjob%3D%22prom_node_exporter%22%7D+%3D%3D+0&g0.tab=1",
+    event_action => "trigger",
+  };
+}
+
 sub dispatch_logs ($, $hub, $alert) {
   $Logger->clear_events;
   $hub->dispatch($alert);
   return map { $_->{message} } $Logger->events->@*;
 }
 
-  
 1;

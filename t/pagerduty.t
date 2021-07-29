@@ -12,17 +12,27 @@ use Test::Time time => Test::PromAlertProxy->now;
 
 use PromAlertProxy::Hub;
 use PromAlertProxy::Alert;
-use PromAlertProxy::Target::Email;
+use PromAlertProxy::Target::PagerDuty;
+
+use Net::Async::HTTP;
+use JSON::MaybeXS qw(decode_json);
+use HTTP::Response;
+use Future;
+
+my $pd_alert;
+no warnings 'redefine';
+local *Net::Async::HTTP::do_request = sub ($self, %args) {
+  $pd_alert = decode_json($args{content});
+  return Future->done(HTTP::Response->new(200, 'OK'));
+};
 
 my $hub = PromAlertProxy::Hub->new;
 
-my $target = PromAlertProxy::Target::Email->new(
+my $target = PromAlertProxy::Target::PagerDuty->new(
   hub             => $hub,
-  id              => 'email',
+  id              => 'pagerduty',
   default         => 1,
-  from            => 'from@localhost',
-  to              => 'to@localhost',
-  transport_class => 'Email::Sender::Transport::Test',
+  integration_key => 'testkey',
 );
 $hub->add_target($target);
 
@@ -31,15 +41,7 @@ my $alert = PromAlertProxy::Alert->new(%alert_contents);
 
 my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
 
-my $mail_transport = $target->_transport;
-
-is($mail_transport->delivery_count, 1, 'email alert receieved')
+cmp_deeply($pd_alert, Test::PromAlertProxy->pd_alert, 'PD alert received')
   or diag explain \@logs;
-
-if (my $email = $mail_transport->shift_deliveries) {
-  my $summary = $alert->summary;
-  my $subject = $email->{email}->get_header('Subject');
-  like($subject, qr/$summary/, 'email content probably fine');
-}
 
 done_testing;

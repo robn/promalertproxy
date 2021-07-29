@@ -2,9 +2,14 @@
   ip = "127.0.0.1"
   port = 9999
 
+[target.pagerduty]
+  class = "PromAlertProxy::Target::PagerDuty"
+  default = 1
+  #integration_url = 'https://events.pagerduty.com/v2/enqueue'
+  integration_key = 'xxxxxxxx'
+
 [target.victorops]
   class = "PromAlertProxy::Target::VictorOps"
-  default = 1
   api_url = "https://alert.victorops.com/integrations/generic/20131114/alert/xxxxxxxxxxxxxxxx/plumbing"
 
 [target.email]
