@@ -43,11 +43,12 @@ has transport_args => (
 );
 
 has headers => (
-  is     => 'ro',
-  isa    => HashRef,
-  coerce => sub ($config) {
+  is      => 'ro',
+  isa     => HashRef,
+  coerce  => sub ($config) {
     +{ map { delete ($_->{header}) => $_ } @$config },
   },
+  default => sub { [] },
 );
 
 has _transport => (
