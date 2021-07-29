@@ -11,9 +11,10 @@ use Type::Utils qw(class_type);
 use Type::Params qw(compile);
 
 has received_alerts => (
-  is      => 'ro',
+  is      => 'lazy',
   isa     => ArrayRef,
   default => sub { [] },
+  clearer => 'clear_received_alerts',
 );
 
 sub raise ($self, $alert) {

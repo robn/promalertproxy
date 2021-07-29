@@ -17,3 +17,7 @@
   from = "alert@mycorp.com"
   to = "alert@mycorp.com"
   transport_class = "Email::Sender::Transport::Sendmail"
+
+[target.everything]
+  class = "PromAlertProxy::Target::Redispatch"
+  to = ['pagerduty', 'victorops', 'email']

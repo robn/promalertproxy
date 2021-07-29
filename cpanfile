@@ -15,6 +15,7 @@ requires "Log::Dispatchouli::Global" => "0";
 requires "Module::Runtime" => "0";
 requires "Moo" => "0";
 requires "Moo::Role" => "0";
+requires "MooX::Clone" => "0";
 requires "Net::Async::HTTP" => "0";
 requires "Net::Async::HTTP::Server::PSGI" => "0";
 requires "Path::Tiny" => "0";

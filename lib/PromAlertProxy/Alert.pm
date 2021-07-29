@@ -4,6 +4,8 @@ use 5.028;
 use Moo;
 use experimental qw(signatures);
 
+use MooX::Clone;
+
 use Types::Standard qw(Str Int Bool HashRef Maybe);
 use Type::Params qw(compile);
 
@@ -59,6 +61,7 @@ has target => (
   is      => 'lazy',
   isa     => Maybe[Str],
   default => sub ($self) { $self->annotations->{target} },
+  clearer => '_clear_target',
 );
 
 has name => (
@@ -90,5 +93,29 @@ has is_resolved => (
   isa     => Bool,
   default => sub ($self) { !$self->is_active },
 );
+
+
+# assistance for the redispatch target
+has was_redispatched => (
+  is      => 'lazy',
+  isa     => Bool,
+  default => 0,
+  writer  => '_set_redispatched',
+);
+
+sub clone_for_redispatch ($self, $target = undef) {
+  my $alert = $self->clone;
+  $alert->_set_redispatched(1);
+
+  if (defined $target) {
+    $alert->annotations->{target} = $target;
+  }
+  else {
+    delete $alert->annotations->{target};
+  }
+  $alert->_clear_target;
+
+  return $alert;
+}
 
 1;
