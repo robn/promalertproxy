@@ -13,6 +13,7 @@ use Test::Time time => Test::PromAlertProxy->now;
 use PromAlertProxy::Hub;
 use PromAlertProxy::Alert;
 use PromAlertProxy::Target::Email;
+use PromAlertProxy::Logger '$Logger';
 
 my $hub = PromAlertProxy::Hub->new;
 
@@ -28,11 +29,13 @@ $hub->add_target($target);
 
 my %alert_contents = Test::PromAlertProxy->prom_alert->%*;
 my $alert = PromAlertProxy::Alert->new(%alert_contents);
-$hub->dispatch($alert);
+
+my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
 
 my $mail_transport = $target->_transport;
 
-is($mail_transport->delivery_count, 1, 'email alert receieved');
+is($mail_transport->delivery_count, 1, 'email alert receieved')
+  or diag explain \@logs;
 
 if (my $email = $mail_transport->shift_deliveries) {
   my $summary = $alert->summary;

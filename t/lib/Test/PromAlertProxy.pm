@@ -7,6 +7,7 @@ use experimental qw(signatures);
 use PromAlertProxy::Logger '$Logger' => { init => {
   ident    => 'promalertproxy',
   to_self  => 1,
+  log_pid  => 0,
 } };
 
 use Test::PromAlertProxy::Target;
@@ -49,5 +50,12 @@ sub vo_alert {
     "prometheus.severity"  => "critical",
   };
 }
+
+sub dispatch_logs ($, $hub, $alert) {
+  $Logger->clear_events;
+  $hub->dispatch($alert);
+  return map { $_->{message} } $Logger->events->@*;
+}
+
   
 1;

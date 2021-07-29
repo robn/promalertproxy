@@ -34,33 +34,38 @@ $hub->add_target($crashtarget);
 {
   my %alert_contents = Test::PromAlertProxy->prom_alert->%*;
   my $alert = PromAlertProxy::Alert->new(%alert_contents);
-  $hub->dispatch($alert);
-  is($target1->received_alerts->@*, 1, 'alert with no target dispatched to default target');
+  my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+  is($target1->received_alerts->@*, 1, 'alert with no target dispatched to default target')
+    or diag explain \@logs;
 }
 
 {
   my %alert_contents = Test::PromAlertProxy->prom_alert->%*;
   $alert_contents{annotations}{target} = 'test1';
   my $alert = PromAlertProxy::Alert->new(%alert_contents);
-  $hub->dispatch($alert);
-  is($target1->received_alerts->@*, 2, 'alert with target dispatched to correct target (default)');
+  my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+  is($target1->received_alerts->@*, 2, 'alert with target dispatched to correct target (default)')
+    or diag explain \@logs;
 }
 
 {
   my %alert_contents = Test::PromAlertProxy->prom_alert->%*;
   $alert_contents{annotations}{target} = 'test2';
   my $alert = PromAlertProxy::Alert->new(%alert_contents);
-  $hub->dispatch($alert);
-  is($target2->received_alerts->@*, 1, 'alert with target dispatched to correct target (non default)');
+  my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+  is($target2->received_alerts->@*, 1, 'alert with target dispatched to correct target (non default)')
+    or diag explain \@logs;
 }
 
 {
   my %alert_contents = Test::PromAlertProxy->prom_alert->%*;
   $alert_contents{annotations}{target} = 'crashtest';
   my $alert = PromAlertProxy::Alert->new(%alert_contents);
-  $hub->dispatch($alert);
-  is($target1->received_alerts->@*, 3, 'alert fallback dispatched to target 1');
-  is($target2->received_alerts->@*, 2, 'alert fallback dispatched to target 2');
+  my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+  is($target1->received_alerts->@*, 3, 'alert fallback dispatched to target 1')
+    or diag explain \@logs;
+  is($target2->received_alerts->@*, 2, 'alert fallback dispatched to target 2')
+    or diag explain \@logs;
 }
 
 done_testing;

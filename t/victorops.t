@@ -38,8 +38,10 @@ $hub->add_target($target);
 
 my %alert_contents = Test::PromAlertProxy->prom_alert->%*;
 my $alert = PromAlertProxy::Alert->new(%alert_contents);
-$hub->dispatch($alert);
 
-cmp_deeply($vo_alert, Test::PromAlertProxy->vo_alert, 'VO alert received');
+my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+
+cmp_deeply($vo_alert, Test::PromAlertProxy->vo_alert, 'VO alert received')
+  or diag explain \@logs;
 
 done_testing;
