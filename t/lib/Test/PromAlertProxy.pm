@@ -81,6 +81,7 @@ sub pd_alert {
 sub dispatch_logs ($, $hub, $alert) {
   $Logger->clear_events;
   $hub->dispatch($alert);
+  while ($hub->loop->loop_once(0)) {}
   return map { $_->{message} } $Logger->events->@*;
 }
 
