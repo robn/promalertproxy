@@ -6,7 +6,7 @@ use experimental qw(signatures);
 
 with 'PromAlertProxy::Target';
 
-use Types::Standard qw(Object Str HashRef);
+use Types::Standard qw(Object Str HashRef Int);
 use Type::Utils qw(role_type class_type);
 use Type::Params qw(compile);
 
@@ -59,10 +59,34 @@ has _transport => (
   },
 );
 
+has suppress_interval => (
+  is      => 'ro',
+  isa     => Int,
+  default => 60*60,
+);
+
+has _seen => (
+  is => 'ro',
+  isa => HashRef,
+  default => sub { {} },
+);
+
 sub raise ($self, $alert) {
   state $check = compile(Object, class_type('PromAlertProxy::Alert'));
   $check->(@_);
 
+  if ($alert->is_active) {
+    my $now_ts = time;
+    my $first_ts = $self->_seen->{$alert->key} // 0;
+    if ($first_ts + $self->suppress_interval > $now_ts) {
+      $Logger->log(["alert key %s seen too recently (%d seconds ago), dropping it", $alert->key, $now_ts - $first_ts]);
+      return;
+    }
+    $self->_seen->{$alert->key} = $now_ts;
+  }
+  else {
+    delete $self->_seen->{$alert->key};
+  }
 
   my %headers;
   for my $header (keys $self->headers->%*) {
