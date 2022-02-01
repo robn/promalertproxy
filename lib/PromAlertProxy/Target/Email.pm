@@ -101,9 +101,13 @@ sub raise ($self, $alert) {
     }
   }
 
+  my $prefix = 
+    $alert->is_active ? "\N{POLICE CARS REVOLVING LIGHT} ALERT"
+                      : "\N{WHITE HEAVY CHECK MARK} RESOLVED";
+
   my $stuffer = Email::Stuffer->from($self->from)
                               ->to($self->to)
-                              ->subject($alert->name.': '.$alert->summary)
+                              ->subject($prefix.': '.$alert->name.': '.$alert->summary)
                               ->text_body($self->_body_for($alert))
                               ->header('In-Reply-To' => '<'.$alert->key.'@promalertproxy>')
                               ->transport($self->_transport);
