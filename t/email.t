@@ -42,4 +42,17 @@ if (my $email = $mail_transport->shift_deliveries) {
   like($subject, qr/$summary/, 'email content probably fine');
 }
 
+$mail_transport->clear_deliveries;
+
+@logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+is($mail_transport->delivery_count, 0, 'email alert suppressed')
+  or diag explain \@logs;
+
+sleep $target->suppress_interval * 2;
+
+@logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+is($mail_transport->delivery_count, 1, 'previously suppressed email alert received')
+  or diag explain \@logs;
+
+
 done_testing;
