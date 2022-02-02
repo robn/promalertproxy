@@ -55,12 +55,15 @@ my $mail_transport = $target->_transport;
     or diag explain \@logs;
 }
 
-sleep $target->suppress_interval * 2;
+# sleep 10mins. the test alert has a 3mins window, but the suppression interval
+# is 60mins, so this should give us a resolved alert still in the suppression
+# window
+sleep 10*60;
 
 {
   my $alert = PromAlertProxy::Alert->new(%alert_contents);
   my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
-  is($mail_transport->delivery_count, 1, 'previously suppressed email alert received')
+  is($mail_transport->delivery_count, 1, 'previously suppressed email alert received after state change')
     or diag explain \@logs;
 
   if (my $email = $mail_transport->shift_deliveries) {
@@ -69,6 +72,26 @@ sleep $target->suppress_interval * 2;
     like($subject, qr/RESOLVED/, 'resolved email says RESOLVED');
     like($subject, qr/$summary/, 'email content probably fine');
   }
+
+  $mail_transport->clear_deliveries;
+}
+
+{
+  my $alert = PromAlertProxy::Alert->new(%alert_contents);
+  my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+
+  is($mail_transport->delivery_count, 0, 'email alert suppressed')
+    or diag explain \@logs;
+}
+
+# now move way outside the suppression window
+sleep $target->suppress_interval * 2;
+
+{
+  my $alert = PromAlertProxy::Alert->new(%alert_contents);
+  my @logs = Test::PromAlertProxy->dispatch_logs($hub, $alert);
+  is($mail_transport->delivery_count, 1, 'previously suppressed email alert received after suppression window')
+    or diag explain \@logs;
 }
 
 done_testing;

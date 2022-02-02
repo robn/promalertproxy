@@ -75,18 +75,25 @@ sub raise ($self, $alert) {
   state $check = compile(Object, class_type('PromAlertProxy::Alert'));
   $check->(@_);
 
-  if ($alert->is_active) {
-    my $now_ts = time;
-    my $first_ts = $self->_seen->{$alert->key} // 0;
-    if ($first_ts + $self->suppress_interval > $now_ts) {
-      $Logger->log(["alert key %s seen too recently (%d seconds ago), dropping it", $alert->key, $now_ts - $first_ts]);
-      return;
-    }
-    $self->_seen->{$alert->key} = $now_ts;
+  # once an alert stops firing, we will remember its key forever. I'm not doing
+  # anything about that, because it should be a negligible amount of memory. in
+  # the future though, maybe we could have a timer on it -- robn, 2022-02-02 
+
+  my $now_ts = time;
+
+  my $seen = $self->_seen->{$alert->key};
+
+  my $should_fire =                                      # send email if:
+    !$seen ||                                            # - never saw it before
+    $seen->{ts} + $self->suppress_interval <= $now_ts || # - last saw it a long time ago
+    $seen->{active} ^ $alert->is_active;                 # - state changed since we last saw it
+
+  unless ($should_fire) {
+    $Logger->log(["alert seen too recently (%d seconds ago), dropping it", $now_ts - $seen->{ts}]);
+    return;
   }
-  else {
-    delete $self->_seen->{$alert->key};
-  }
+
+  $self->_seen->{$alert->key} = { ts => $now_ts, active => $alert->is_active };
 
   my %headers;
   for my $header (keys $self->headers->%*) {
